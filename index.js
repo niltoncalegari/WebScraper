@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { find } = require('domutils');
-const express = require('express');
+const puppeteer = require('puppeteer');
 
 async function GeFromTable(url) {
     try {
@@ -23,7 +22,7 @@ async function GeFromTable(url) {
                 carUrl: carUrl,
                 carAdImgUrl:
                     $(element).find('.sc-101cdir-0').attr('data-src') !==
-                    undefined
+                        undefined
                         ? $(element).find('.sc-101cdir-0').attr('data-src')
                         : $(element).find('.sc-101cdir-1').attr('src'),
                 //carValue: $(element).find('p.sc-1iuc9a2-8').text(),
@@ -42,39 +41,55 @@ async function GeFromTable(url) {
 
 async function GetCarCharacteristics(carUrl) {
     try {
-        const carData = await GetUrlData(carUrl);
-        let $ = cheerio.load(carData);
-        let charElemSelector = 'div[class=sc-57pm5w-0]';
-
-        const testando = $(charElemSelector).html();
-
-        let charSelector = [];
-        console.log();
-        $(charElemSelector).each((index, element) => {
-            console.log($(element).find('.sc-57pm5w-0').text());
-            characteristics.push($(element).find('.sc-57pm5w-0').text());
-        });
-
         let carCharacteristics = {
-            test: $(charElemSelector).html(),
-            categorie: charSelector[0],
-            model: charSelector[1],
-            brand: charSelector[2],
-            modelYear: charSelector[3],
-            mileAge: charSelector[4],
-            engine: charSelector[5],
-            fuel: charSelector[6],
-            gearShift: charSelector[7],
-            steeringWheel: charSelector[8],
-            color: charSelector[9],
-            doors: charSelector[10],
+            categorie: null,
+            model: null,
+            brand: null,
+            type: null,
+            modelYear: null,
+            mileAge: null,
+            engine: null,
+            fuel: null,
+            gearShift: null,
+            steeringWheel: null,
+            color: null,
+            doors: null,
         };
+
+        scrape(carUrl).then((value) => {
+            value.forEach(element => {
+                console.log(element);
+            });
+        });
 
         return carCharacteristics;
     } catch (err) {
         console.error(err);
     }
 }
+
+let scrape = async (urlCarChar) => {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    const url = urlCarChar;
+    await page.goto(url);
+
+    const resultScrape = await page.evaluate(() => {
+        const cars = [];
+        [...document.querySelectorAll("#content > div.sc-18p038x-3 > div > div.sc-bwzfXH > div.duvuxf-0 > div.h3us20-6 > div > div > div > div.sc-bwzfXH > div")]
+            .map(x => cars.push(x.textContent));
+        return cars;
+    });
+
+    await browser.close();
+    return resultScrape;
+};
+
+scrape().then((value) => {
+    value.forEach(element => {
+        console.log(element);
+    });
+});
 
 async function GetUrlData(url) {
     try {
