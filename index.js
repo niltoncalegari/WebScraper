@@ -22,7 +22,7 @@ async function GeFromTable(url) {
                 carUrl: carUrl,
                 carAdImgUrl:
                     $(element).find('.sc-101cdir-0').attr('data-src') !==
-                        undefined
+                    undefined
                         ? $(element).find('.sc-101cdir-0').attr('data-src')
                         : $(element).find('.sc-101cdir-1').attr('src'),
                 //carValue: $(element).find('p.sc-1iuc9a2-8').text(),
@@ -56,11 +56,9 @@ async function GetCarCharacteristics(carUrl) {
             doors: null,
         };
 
-        scrape(carUrl).then((value) => {
-            value.forEach(element => {
-                console.log(element);
-            });
-        });
+        const carCharList = await puppetGetCarChar(carUrl);
+
+        console.log(JSON.stringify(carCharList));
 
         return carCharacteristics;
     } catch (err) {
@@ -68,28 +66,31 @@ async function GetCarCharacteristics(carUrl) {
     }
 }
 
-let scrape = async (urlCarChar) => {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    const url = urlCarChar;
-    await page.goto(url);
+async function puppetGetCarChar(urlCarChar) {
+    try {
+        const browser = await puppeteer.launch({
+            headless: true,
+            handleSIGINT: false,
+        });
+        const page = await browser.newPage();
+        await page.setDefaultNavigationTimeout(0); 
+        const url = urlCarChar;
+        const promise = page.waitForNavigation({ waitUntil: 'networkidle2' });
+        await page.goto(url);
+        await promise;
 
-    const resultScrape = await page.evaluate(() => {
-        const cars = [];
-        [...document.querySelectorAll("#content > div.sc-18p038x-3 > div > div.sc-bwzfXH > div.duvuxf-0 > div.h3us20-6 > div > div > div > div.sc-bwzfXH > div")]
-            .map(x => cars.push(x.textContent));
-        return cars;
-    });
+        const resultScrape = await page.evaluate(() => {
+            const cars = [];
+            [...document.querySelectorAll("#content > div.sc-18p038x-3 > div > div.sc-bwzfXH > div.duvuxf-0 > div.h3us20-6 > div > div > div > div.sc-bwzfXH > div > div > div.sc-hmzhuo")].map((x) => cars.push(x.textContent));
+            return cars;
+        });
 
-    await browser.close();
-    return resultScrape;
-};
-
-scrape().then((value) => {
-    value.forEach(element => {
-        console.log(element);
-    });
-});
+        await browser.close();
+        return resultScrape;
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 async function GetUrlData(url) {
     try {
